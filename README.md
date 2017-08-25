@@ -56,23 +56,10 @@ You’ll need to specify your Scalyr "Write Logs" API key as an environment vari
 
 * Enter "SCALYR_WRITE_LOGS_KEY" in the first column (no quotes)
 * Provide your account’s actual Scalyr "Write Logs" API Key in the second column.
-* Click "Encrypt".
-
-Once you’ve done this, you should see something like:
-
-<div style="text-align:center"><img src="markdown_images/image_5.png" width="900"></div>
-<br>
 
 There are a couple of additional environment variables you can pass to the code - USE_ADD_EVENTS_API and PARSER_NAME. (These should not be encrypted.) In general, USE_ADD_EVENTS_API should be false (and you don’t actually need to specify it unless you want it to be true). PARSER_NAME is optional as well and refers to a specific custom parser defined using the Scalyr UI - if not specified, the default parser is used.
 
 <div style="text-align:center"><img src="markdown_images/image_6.png" width="600"></div>
-<br>
-
-## Define a role for your function
-
-The last step on this page is to define a role for your function. In the next section of the page, choose "Create new role from template(s)" from the Role dropdown, give the role a name, and choose “KMS decryption permissions” from the Policy Templates dropdown:
-
-<div style="text-align:center"><img src="markdown_images/image_7.png" width="900"></div>
 <br>
 
 ## Last step
