@@ -12,9 +12,7 @@ let parserName = process.env['PARSER_NAME'];
 if (!parserName || !parserName.length) parserName = 'cloudWatchLogs';
 
 const useAddEventsApi = (process.env['USE_ADD_EVENTS_API'] == 'true');
-const encryptedScalyrApiKey = process.env['SCALYR_WRITE_LOGS_KEY'];
-let decryptedScalyrApiKey;
-
+const scalyrApiKey = process.env.SCALYR_WRITE_LOGS_KEY;
 
 /**
  * Translates a CloudWatch message into a format appropriate for submitting to the Scalyr addEvents API endpoint.
@@ -24,7 +22,7 @@ let decryptedScalyrApiKey;
  */
 function transformToAddEventsMessage(cloudWatchMessage) {
   return {
-    'token': decryptedScalyrApiKey,
+    'token': scalyrApiKey,
     'session': cloudWatchMessage.logStream,
     'sessionInfo': {
       'serverHost': `cloudwatch-${cloudWatchMessage.owner}`, // TODO change this if you like
@@ -38,8 +36,6 @@ function transformToAddEventsMessage(cloudWatchMessage) {
         'sev': 3,
         'attrs': {
           // TODO make changes here if you want to parse in AWS Lambda before sending to Scalyr
-          'cwStream': cloudWatchMessage.logStream,
-          'cwId': cloudWatchEvent.id,
           'message': cloudWatchEvent.message
         }
       };
@@ -57,10 +53,9 @@ function transformToAddEventsMessage(cloudWatchMessage) {
  */
 function transformToUploadLogsMessage(cloudWatchMessage) {
   return {
-    'token': encodeURIComponent(decryptedScalyrApiKey),
+    'token': encodeURIComponent(scalyrApiKey),
     'host': encodeURIComponent(`cloudwatch-${cloudWatchMessage.owner}`), // TODO change this if you like
     'logfile': encodeURIComponent(cloudWatchMessage.logGroup),
-    'logStream': encodeURIComponent(cloudWatchMessage.logStream),
     'body': cloudWatchMessage.logEvents.map((cloudWatchEvent) => {
       if (cloudWatchEvent.message.endsWith('\n')) {
         return cloudWatchEvent.message.substr(0, cloudWatchEvent.message.length - 1);
@@ -89,7 +84,7 @@ function transformToPost(cloudWatchMessage) {
     const message = transformToUploadLogsMessage(cloudWatchMessage);
     return {
       headers: {'content-type': 'text/plain'},
-      url: `${uploadLogsUrl}?token=${message.token}&host=${message.host}&logfile=${message.logfile}&server-logStream=${message.logStream}&parser=${parserName}`,
+      url: `${uploadLogsUrl}?token=${message.token}&host=${message.host}&logfile=${message.logfile}&parser=${parserName}`,
       body: message.body
     };
   }
@@ -139,19 +134,9 @@ function processEvent(event, context, callback) {
  * @param callback
  */
 exports.handler = (event, context, callback) => {
-  if (decryptedScalyrApiKey) {
+  if(scalyrApiKey) {
     processEvent(event, context, callback);
   } else {
-    // decryption code runs once and variables are stored outside of the function handler so that these
-    // are decrypted once per container
-    const kms = new AWS.KMS();
-    kms.decrypt({CiphertextBlob: new Buffer(encryptedScalyrApiKey, 'base64')}, (err, data) => {
-      if (err) {
-        console.log('Decryption error:', err);
-        return callback(err);
-      }
-      decryptedScalyrApiKey = data.Plaintext.toString('ascii');
-      processEvent(event, context, callback);
-    });
+    console.log("no scalyrApiKey");
   }
 };
